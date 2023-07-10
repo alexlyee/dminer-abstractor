@@ -20,6 +20,8 @@ class WeatherData:
 
     If data for this is known an exclusive fp will be made to it in self.data, and likewise for preprocessed_data.
 
+    This struct was designed from the bottom-up to care for daily, surface-level (often "2M" above) data.
+
     Currently only handling data_type='tmp'
     '''
     SOURCES = odict({
