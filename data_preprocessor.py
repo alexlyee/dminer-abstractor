@@ -3,8 +3,9 @@
 from datetime import datetime
 import xarray as xr
 import numpy as np
+from typing import Union
 
-def preprocess_era5_data(variables, transform=None, interpolate=1.25, get_from='./', save_to='./', verbose:bool=False) -> bool:
+def preprocess_era5_data(variables: Union[str, list], transform=None, interpolate=1.25, get_from='./', save_to='./', verbose:bool=False) -> bool:
     '''
         loads data from {get_from}data.nc, 
         interpolates at 1.25 degrees by default, 
@@ -74,7 +75,12 @@ def preprocess_era5_data(variables, transform=None, interpolate=1.25, get_from='
 
     # Average to daily values
     df.set_index('time', inplace=True)
-    df = df.resample('D').mean()
+    df.index = df.index.to_period('D')  # Convert the timestamp to daily period
+    df = df.groupby(['latitude', 'longitude', df.index]).mean() 
+
+    # Reset the index for 'time' to be timestamp again
+    df.reset_index(inplace=True)
+    df['time'] = df['time'].dt.to_timestamp()
 
     # Print dataframe after resampling
     if verbose: print("\nDataframe after resampling:\n", df.head())

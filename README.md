@@ -29,3 +29,25 @@ is a class designed to automate working with our preprocessed data.
 currently only capable of plotting things in various ways.
 
 see code for example usage.
+
+---
+
+## getting set up
+
+Have [miniconda](https://docs.conda.io/en/latest/miniconda.html)/[anaconda](https://www.anaconda.com/download/) set up.
+
+VS Code should automatically detect your conda environments. If it doesn't, you might need to set the path to your conda executable in the settings (either by editing the settings.json file directly or through the UI).
+
+To change the Python interpreter for a particular file or project in VS Code:
+
+    Click on the Python version in the bottom-left corner of the status bar, or use the Python:Select Interpreter command from the Command Palette (Ctrl+Shift+P).
+    You should see your conda environment in the list of interpreters that VS Code detects automatically.
+
+```py
+conda update -n base -c defaults conda
+conda env create -f environment.yml
+conda init
+    # may be needed, afterwards restart terminal
+conda activate dminer
+    # restart vscode and select dminer interpreter
+```

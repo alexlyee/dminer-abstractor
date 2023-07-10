@@ -1,3 +1,5 @@
 downloads/
 preprocessed/
 working/
+__pycache__/
+.vscode/

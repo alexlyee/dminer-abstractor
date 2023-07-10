@@ -3,6 +3,41 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
 
+import pandas as pd
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+
+def plot_spatial_freq_map(data_dir, variable, start_year, end_year):
+    """
+    Create a spatial frequency map for a specified variable and time period.
+
+    Parameters:
+    - data_dir: The directory where the data file is located.
+    - variable: The variable of interest to plot.
+    - start_year, end_year: The time period for which to plot the data.
+    """
+    # Load the data
+    df = pd.read_csv(f'{data_dir}/data.csv')
+    
+    # Filter for the specified time period and variable
+    df['time'] = pd.to_datetime(df['time'])
+    df = df[(df['time'].dt.year >= start_year) & (df['time'].dt.year <= end_year)]
+    
+    # Create a pivot table with latitude and longitude as indices
+    pivot = df.pivot_table(values=variable, index='latitude', columns='longitude')
+    
+    # Create the plot
+    fig = plt.figure(figsize=(10, 5))
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+    ax.coastlines()
+    ax.set_global()
+    
+    plt.contourf(pivot.columns, pivot.index, pivot.values, transform=ccrs.PlateCarree(), cmap='viridis')
+    
+    plt.title(f'Spatial Frequency of {variable} ({start_year}-{end_year})')
+    plt.colorbar(label=variable)
+    plt.show()
+
 def plot_data(df1, df2, title1, title2):
     plt.figure(figsize=(10, 5))
 
