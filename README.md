@@ -7,6 +7,8 @@ and extra years of GSOD (2015-2018) are used to test the validity of the model.
 GCM (IPCC) is a benchmark scientific model of expected world temperatures at a low-resolution that includes many factors.
 the goal is essentially to upscale the resolution of the GCM using modern machine-learning techniques.
 
+a part of the works of [the DMiner lab at MSU](https://www.egr.msu.edu/~ptan/dminer/).
+
 ---
 
 ## this repo

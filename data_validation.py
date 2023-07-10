@@ -1,4 +1,4 @@
-
+from datetime import datetime
 
 # it may not be a bad idea to impliment validation for the downloaded data.
 
@@ -27,17 +27,34 @@ def check_lat_lon_range(df, verbose=True):
 
 ############# ERA5
 
-def validate_preprocessed_era5(variable, interpolation=1.25, ):
-    pass
+def validate_preprocessed_era5(variable, verbose:bool, start_date:datetime, end_date:datetime, interpolation:int, get_from='./') -> bool:
+    '''
+    loads data from {get_from}data.nc
+
+    validates that era5 data is in form time | latitude | longitude | [variable | s ...]
+    
+    if being verbose, will warn when any variable passed in is not of expected form (i.e. it will not be tested)
+    also warns if any number of NAs are found
+
+    ensures that all expected fields are in latitude (-90 -> 90) longitude (0 -> 360-interpolation) grid based on interpolation (degrees). 
+
+    ensures that exactly one exists for each point + day; one value per day.
+    '''
+
+    return True
 
 
 
 
 ############# GSM
 
+def validate_preprocessed_gcm(variable, verbose:bool, start_date:datetime, end_date:datetime, interpolation:int, get_from='./') -> bool:
 
+    return True
 
 
 ############# GSOD
 
+def validate_preprocessed_gsod(variable, verbose:bool, start_date:datetime, end_date:datetime, interpolation:int, get_from='./') -> bool:
 
+    return True
