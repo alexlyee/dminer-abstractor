@@ -10,15 +10,17 @@ def download_era5_data(variable, start_date:datetime, end_date:datetime, save_to
 
         assumes range of times from start_date and end_date. this means end_date CANNOT be earlier in the day than start_date.
         ...well, technically an hour earlier, as the algorithm will not look at minutes, and hence rounds down all times to XX:00.
+        ERA5 only has 00:00, 6:00, 12:00, and 18:00. so of those hours in your range, only those are included for the final request.
+        That's up to four hours a day of DAILY DATA.
+
+        This is daily data.
 
         variable must be str or list thereof.
 
         valid variables for era5 can be found here.
-
-        implied: downloads daily data.
     '''
-    assert start_date.time() <= end_date.time(), f"IPCC data for {variable} has end_date with time before start_date"
-    hour_list = [f'{hour}:00' if hour != 0 else '00:00' for hour in range(start_date.hour, end_date.hour + 1)]
+    assert start_date.time() <= end_date.time(), f"ERA5 data for {variable} has end_date with time before start_date"
+    hour_list = [f'{hour:02d}:00' for hour in range(start_date.hour, end_date.hour + 1, 6)]
         # they don't like 0:00 :(
 
     c = cdsapi.Client()

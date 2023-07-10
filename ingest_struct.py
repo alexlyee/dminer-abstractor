@@ -3,7 +3,7 @@ from data_downloader import download_era5_data, download_gcm_data, download_gsod
 from data_validation import validate_preprocessed_era5, validate_preprocessed_gcm, validate_preprocessed_gsod
 import os
 from datetime import datetime, timezone
-from collections import OrderedDict as oset
+from collections import OrderedDict as odict
 
 def dupless(lst:list) -> bool:
     'returns true if all values in list are unique (i.e. if lst is an ordered set)'
@@ -22,12 +22,12 @@ class WeatherData:
 
     Currently only handling data_type='tmp'
     '''
-    SOURCES = oset({
+    SOURCES = odict({
         'ERA5': 1,
         'IPCC Global Climate Model (GCM) Output': 2,
         'Global Surface Summary of the Day - GSOD': 3
     })
-    GCMS = oset({
+    GCMS = odict({
         'SSP245': 1,
         'SSP585': 2   
     })
@@ -42,7 +42,7 @@ class WeatherData:
         }
     }
     DEFAULT_TYPE_MAP = {
-        1: (['tmp'], ['2m_temperature'], ['t2m']),
+        1: (['2m_temperature'], ['t2m'], ['tmp']), # i'm in chronological order!
     }
     DATE_MAP = {
         1: (datetime(1979, 1, 1, tzinfo=timezone.utc), # like GSOD, data continues to present, but we have decided to train model on data until 2015-01-01 00:00.
@@ -51,7 +51,7 @@ class WeatherData:
         3: (datetime(1979, 1, 1, tzinfo=timezone.utc), datetime(2023, 1, 1, 23, tzinfo=timezone.utc)) # GSOD records actually begin in 1929.
     }
 
-    def __init__(self, source, data_types='default', gcm_type=None, start_date:datetime=None, end_date:datetime=None, force=False, verbose=False):
+    def __init__(self, source, gcm_type=None, data_types='default', start_date:datetime=None, end_date:datetime=None, force=False, verbose=False):
         '''
         Source implies date ranges (see DATE_MAP), overriding dates is possible, but support has been deprecated since 2023-07-01.
 
@@ -66,13 +66,14 @@ class WeatherData:
         else:
             assert source in self.SOURCES, 'Invalid source name'
             self.source = self.SOURCES[source] # self.source will be a number
-        if self.source == 2 and gcm_type not in self.GCMS:
-            if gcm_type != 1 and gcm_type != 2: assert False, 'GCM type expected, got invalid input'
-            else: self.gcm_type = gcm_type
-        else: self.gcm_type = self.GCMS[gcm_type]
-        
+        if self.source == 2:
+            if gcm_type not in self.GCMS:
+                if gcm_type != 1 and gcm_type != 2: assert False, 'GCM type expected, got invalid input'
+                else: self.gcm_type = gcm_type
+            else: self.gcm_type = self.GCMS[gcm_type]
+            
         # date mapping to presumed values for our experiments if not overridden in parameters
-        if not (not start_date and end_date): print('WARNING:\tend_date provided but not start_date --is this intentional?')
+        if not start_date and end_date: print('WARNING:\tend_date provided but not start_date --is this intentional?')
         self.start_date = start_date if isinstance(start_date, datetime) else self.DATE_MAP[self.source][0]
         self.end_date = end_date if isinstance(end_date, datetime) else self.DATE_MAP[self.source][1]
         if self.end_date == self.start_date: print(f'asking for weather data from source {source}?... weird')
@@ -88,7 +89,8 @@ class WeatherData:
         self.preprocessed = False
         self.validated = False
 
-        if data_types == 'default': self.data_types, self._understoodtypes = self.DEFAULT_TYPE_MAP[self.source]
+        if data_types == 'default': 
+            self._downloadingtypenames, self._downloadedtypenames, self.data_types = self.DEFAULT_TYPE_MAP[self.source]
         else:
             if isinstance(data_types, str): data_types = [data_types]
             else: assert dupless(data_types), 'data_types passed in is not unique list'
@@ -103,7 +105,7 @@ class WeatherData:
                 self._downloadedtypenames.append(dlname)
 
         self._timestr = f"from {self.start_date.strftime('%Y-%m-%d')} - {self.end_date.strftime('%Y-%m-%d')}" if self.end_date else f'at {self.start_date}'
-        self._typestr = data_types.join(', ')
+        self._typestr = ', '.join(self.data_types)
         self._str = f'WeatherData source {source}, type(s) {self._typestr}, {self._timestr}'
         self._downloadat = f'./downloads/{self.source}/{self._typestr}/{self._timestr}/'
         self._preprocessat = f'./preprocessed/{self.source}/{self._typestr}/{self._timestr}/'
@@ -117,6 +119,8 @@ class WeatherData:
             2: self._preprocessat + 'data...', # need updating
             3: self._preprocessat + 'data...' # need updating
         }
+
+        if verbose: print(f'{self} initialized.')
 
     def get_time(self) -> str:
         return self._timestr
@@ -150,6 +154,9 @@ class WeatherData:
                 self.start_date, self.end_date, self._downloadat)
         else: assert False, 'unexpected source in downloader'
 
+        if not self.downloaded: print(f'{self} reported a failed download')
+        elif self.verbose: print(f'{self} reported a successful download')
+
     def preprocess(self, release=True):
         '''
         if force is false this function will skip preprocessing if an export exists in ./preprocessed/$SOURCE/$DATA_TYPE/$DATE
@@ -164,14 +171,17 @@ class WeatherData:
         
         if self.source == 1: 
             self.preprocessed = preprocess_era5_data(self._downloadedtypenames, self.data_types,
-                1.25, self._downloadat, self._preprocessat)
+                1.25, self._downloadat, self._preprocessat, self.verbose)
         elif self.source == 2: 
             self.preprocessed = preprocess_gcm_data(self._downloadedtypenames, self.data_types,
-                1.25, self._downloadat, self._preprocessat)
+                1.25, self._downloadat, self._preprocessat, self.verbose)
         elif self.source == 3: 
             self.preprocessed = preprocess_gsod_data(self._downloadedtypenames, self.data_types,
-                1.25, self._downloadat, self._preprocessat)
+                1.25, self._downloadat, self._preprocessat, self.verbose)
         else: assert False, 'unexpected source in preprocessor'
+
+        if not self.preprocessed: print(f'{self} reported a failed preprocessing')
+        elif self.verbose: print(f"dataframe {self} saved as with columns noted above")
     
     def validate(self, verbose=True):
         '''
@@ -190,3 +200,6 @@ class WeatherData:
             self.validated = validate_preprocessed_gsod(self.data_types,
                 verbose if isinstance(verbose, bool) else self.verbose, self.start_date, self.end_date, 1.25, self._preprocessat)
         else: assert False, 'unexpected source in validator'
+
+        if not self.preprocessed: print(f'{self} reported a failed validation')
+        elif verbose: print(f"{self} passed validation")
