@@ -1,37 +1,49 @@
-from data_preprocessor import preprocess_ncep_data, preprocess_ipcc_data, preprocess_gsod_data
-from data_downloader import download_ncep_data, download_ipcc_data, download_gsod_data
+from data_preprocessor import preprocess_era5_data, preprocess_ipcc_data, preprocess_gsod_data
+from data_downloader import download_era5_data, download_ipcc_data, download_gsod_data
+from data_validation import *
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 class WeatherData:
     '''
     This struct is intended to abstract the processes of data_downloader and data_preprocessor for various DMiner data sources.
     Simply initialize, call download, and call preprocessing, which will also validate itself.
 
-    Accepts source "NCEP/DOE Reanalysis II" or number 1, 
-    "IPCC Global Climate Model Output" or number 2, 
-    "Global Surface Summary of the Day - GSOD" or number 3.
+    Accepts source "ERA5" ([read more here](https://confluence.ecmwf.int/display/CKB/ERA5%3A+data+documentation)) or number 1, 
+    "IPCC Global Climate Model (GCM) Output" ([read more here](https://ipcc-data.org/sim/gcm_monthly/)) or number 2, 
+    "Global Surface Summary of the Day - GSOD" ([read more here]()) or number 3.
 
     If data for this is known an exclusive fp will be made to it in self.data, and likewise for preprocessed_data.
 
-    end_date can be null.
-
-    Currently only handling data_type="tmp"
+    Currently only handling data_type='tmp'
     '''
     SOURCES = {
-        "NCEP/DOE Reanalysis II": 1,
-        "IPCC Global Climate Model Output": 2,
+        "ERA5": 1,
+        "IPCC Global Climate Model (GCM) Output": 2,
         "Global Surface Summary of the Day - GSOD": 3
     }
     TYPE_MAP = {
         "tmp": {
-            1: "NA",
-            2: "2m_temperature",
+            1: "2m_temperature",
+            2: "NA",
             3: "NA"
         }
     }
+    DEFAULT_TYPE_MAP = {
+        1: [
+            
+        ]
+    }
+    DATE_MAP = {
+        1: (datetime(1979, 1, 1, tzinfo=timezone.utc), datetime(2015, 1, 1, tzinfo=timezone.utc)), # like GSOD, data continues to present, but we have decided to train model on data until 2015-01-01 00:00.
+        2: (datetime(1979, 1, 1, tzinfo=timezone.utc), datetime(2100, 1, 1, tzinfo=timezone.utc)),
+        3: (datetime(1979, 1, 1, tzinfo=timezone.utc), datetime(2023, 1, 1, tzinfo=timezone.utc)) # GSOD records actually begin in 1929.
+    }
 
-    def __init__(self, source, data_type:str, start_date:datetime, end_date:datetime, force=False):
+    def __init__(self, source, data_type:str, start_date:datetime=None, end_date:datetime=None, force=False, verbose=False):
+        '''
+        Source implies date ranges (see DATE_MAP), overriding dates is possible, but support has been deprecated since 2023-07-01.
+        '''
         if isinstance(source, int): 
             assert 1 <= source <= 3, "Invalid source number"
             self.source = source
@@ -40,13 +52,14 @@ class WeatherData:
             self.source = self.SOURCES[source] # self.source will be a number
 
         assert data_type == "tmp", "Incorrect data type"
-        self.data_type = self.TYPE_MAP[data_type][self.source]
+        self.data_type = data_type
 
-        assert not (not start_date and end_date), "Lacking start date"
-        assert not (end_date and end_date < start_date), "End date not after start date"
-        if end_date == start_date: print(f'asking for weather data from source {source}?... weird')
-        self.start_date = start_date
-        self.end_date = end_date
+        # date mapping to presumed values for our experiments if not overridden in parameters
+        if not (not start_date and end_date): print("WARNING:\tend_date provided but not start_date --is this intentional?")
+        self.start_date = start_date if isinstance(start_date, datetime) else self.DATE_MAP[data_type][0]
+        self.end_date = end_date if isinstance(end_date, datetime) else self.DATE_MAP[data_type][1]
+        if self.end_date == self.start_date: print(f'asking for weather data from source {source}?... weird')
+        assert not (end_date and self.end_date < self.start_date), "End date not after start date"
 
         assert isinstance(force, bool), "Force not bool"
         self.force = force
@@ -59,13 +72,13 @@ class WeatherData:
         self._downloadat = f'./downloads/{self.source}/{data_type}/{self._time}/'
         self._preprocessat = f'./preprocessed/{self.source}/{data_type}/{self._time}/'
         self._downloadpatterns = {
-            1: self._downloadat + "data...", # need updating
-            2: self._downloadat + "data.nc",
+            1: self._downloadat + "data.nc",
+            2: self._downloadat + "data...", # need updating
             3: self._downloadat + "data..." # need updating
         }
         self._preprocesspatterns = {
-            1: self._preprocessat + "data...", # need updating
-            2: self._preprocessat + "data.csv",
+            1: self._preprocessat + "data.csv",
+            2: self._preprocessat + "data...", # need updating
             3: self._preprocessat + "data..." # need updating
         }
 
@@ -87,9 +100,15 @@ class WeatherData:
             print(f"{self} data already exists. Skipping download.")
             return
 
-        if self.source == 1: self.downloaded = download_ncep_data(self.data_type, self.start_date, self.end_date, self._downloadat)
-        elif self.source == 2: self.downloaded = download_ipcc_data(self.data_type, self.start_date, self.end_date, self._downloadat)
-        elif self.source == 3: self.downloaded = download_gsod_data(self.data_type, self.start_date, self.end_date, self._downloadat)
+        if self.source == 1: 
+            self.downloaded = download_era5_data(self.TYPE_MAP[self.data_type][self.source], 
+                self.start_date, self.end_date, self._downloadat)
+        elif self.source == 2: 
+            self.downloaded = download_ipcc_data(self.TYPE_MAP[self.data_type][self.source], 
+                self.start_date, self.end_date, self._downloadat)
+        elif self.source == 3: 
+            self.downloaded = download_gsod_data(self.TYPE_MAP[self.data_type][self.source], 
+                self.start_date, self.end_date, self._downloadat)
         else: assert False, "unexpected source in downloader"
 
     def preprocess(self, release=True):
@@ -103,35 +122,27 @@ class WeatherData:
             print(f"{self} data already exists. Skipping preprocessing.")
             return
         
-        if self.source == 1: self.preprocessed = preprocess_ncep_data(self.data_type, 1.25, self._downloadat, self._preprocessat)
-        elif self.source == 2: self.preprocessed = preprocess_ipcc_data(self.data_type, 1.25, self._downloadat, self._preprocessat)
-        elif self.source == 3: self.preprocessed = preprocess_gsod_data(self.data_type, 1.25, self._downloadat, self._preprocessat)
+        if self.source == 1: 
+            self.preprocessed = preprocess_era5_data(self.TYPE_MAP[self.data_type][self.source], 
+                1.25, self._downloadat, self._preprocessat)
+        elif self.source == 2: 
+            self.preprocessed = preprocess_ipcc_data(self.TYPE_MAP[self.data_type][self.source], 
+                1.25, self._downloadat, self._preprocessat)
+        elif self.source == 3: 
+            self.preprocessed = preprocess_gsod_data(self.TYPE_MAP[self.data_type][self.source], 
+                1.25, self._downloadat, self._preprocessat)
         else: assert False, "unexpected source in downloader"
-
-        self.validate(False)
     
     def validate(self, verbose=True):
-        
-        pass
+        'verbose if not nonetype will override self.verbose value in the context of this function.'
 
-
-def check_unique_dates(df, verbose=True):
-    num_unique_dates = df['time'].nunique()
-    num_total_dates = len(df)
-    if num_unique_dates != num_total_dates: print("Warning: Dates are not unique.")
-    else: print("Dates are unique.")
-
-def check_complete_dates(df, delta=1, verbose=True):
-    '''
-    `delta` is the number of hours that are expected between each time. 
-    Warns if there is an unexpected datetime or lack thereof
-    '''
-    # code
-
-def check_missing_values(df, verbose=True):
-    if df.isnull().sum().sum() > 0: print("Warning: There are missing values.")
-    else: print("No missing values detected.")
-
-def check_lat_lon_range(df, verbose=True):
-    if df['latitude'].min() < -90 or df['latitude'].max() > 90: print("Warning: Latitude out of range.")
-    if df['longitude'].min() < 0 or df['longitude'].max() > 360: print("Warning: Longitude out of range.")
+        if self.source == 1: 
+            self.preprocessed = validate_preprocessed_era5(self.TYPE_MAP[self.data_type][self.source], 
+                1.25, self._downloadat, self._preprocessat)
+        elif self.source == 2: 
+            self.preprocessed = preprocess_ipcc_data(self.TYPE_MAP[self.data_type][self.source], 
+                1.25, self._downloadat, self._preprocessat)
+        elif self.source == 3: 
+            self.preprocessed = preprocess_gsod_data(self.TYPE_MAP[self.data_type][self.source], 
+                1.25, self._downloadat, self._preprocessat)
+        else: assert False, "unexpected source in downloader"
