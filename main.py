@@ -6,7 +6,8 @@ from data_preprocessor import *
 from ingest_struct import WeatherData
 
 def main():
-    test = WeatherData(2, "tmp", datetime.strptime('2023-04-02', '%Y-%m-%d'), datetime.strptime('2023-04-30', '%Y-%m-%d'))
+    #test = WeatherData(2, "tmp", datetime.strptime('2023-04-02', '%Y-%m-%d'), datetime.strptime('2023-04-30', '%Y-%m-%d'))
+    test = WeatherData(1, 'tmp')
     print(test)
     test.download()
     test.preprocess()

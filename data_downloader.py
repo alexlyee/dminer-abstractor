@@ -1,15 +1,8 @@
-####################### NCEP
+####################### ERA5
 
 from datetime import datetime
 
-def download_ncep_data(variable:str, start_date:datetime, end_date:datetime, save_to='./'):
-    pass
-
-### ERA5
-
-import cdsapi
-
-def download_ipcc_data(variable:str, start_date:datetime, end_date:datetime, save_to='./'):
+def download_era5_data(variable:str, start_date:datetime, end_date:datetime, save_to='./'):
     '''
         downloads data at a single datetime or range thereof of global {variable} to data.nc in {save_to}
         save_to must end in a forward-slash.
@@ -41,6 +34,13 @@ def download_ipcc_data(variable:str, start_date:datetime, end_date:datetime, sav
     )
 
     return True
+
+### IPCC
+
+import cdsapi
+
+def download_ipcc_data(variable:str, start_date:datetime, end_date:datetime, save_to='./'):
+    pass
 
 ################### GSOD
 

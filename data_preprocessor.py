@@ -1,22 +1,18 @@
-####################### NCEP
+####################### ERA5
 
 from datetime import datetime
-
-def preprocess_ncep_data(variable, interpolate=None, get_from='./', save_to='./'):
-    pass
-
-### ERA5
-
 import xarray as xr
 import numpy as np
 
-def preprocess_ipcc_data(variable, interpolate=None, get_from='./', save_to='./'):
+def preprocess_era5_data(variable:str, interpolate=1.25, get_from='./', save_to='./'):
     '''
         loads data from {get_from}data.nc, 
-        interpolates at 1.25 degrees, 
+        interpolates at 1.25 degrees by default, 
         converts temp to celsius, 
         and saves dataframe as
         long | lat | time | var
+
+        variable can be: '2m_temperature'
     '''
     # load netCDF file
     data = xr.open_dataset(f'{get_from}data.nc')
@@ -59,9 +55,15 @@ def preprocess_ipcc_data(variable, interpolate=None, get_from='./', save_to='./'
 def check_ipcc_tmp(df):
     pass
 
+
+################### IPCC
+
+def preprocess_ipcc_data(variable:str, interpolate=1.25, get_from='./', save_to='./'):
+    pass
+
 ################### GSOD
 
-def preprocess_gsod_data(variable, interpolate=None, get_from='./', save_to='./'):
+def preprocess_gsod_data(variable:str, interpolate=1.25, get_from='./', save_to='./'):
     pass
 
 ############## GENERAL
