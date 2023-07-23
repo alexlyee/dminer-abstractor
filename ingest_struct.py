@@ -5,6 +5,7 @@ import os
 from datetime import datetime, timezone
 from collections import OrderedDict as odict
 from typing import Union
+import asyncio
 
 def dupless(lst:list) -> bool:
     'returns true if all values in list are unique (i.e. if lst is an ordered set)'
@@ -32,7 +33,7 @@ class WeatherData:
     })
     GCMS = odict({
         'SSP245': 1,
-        'SSP585': 2   
+        'SSP585': 2
     })
     TYPE_MAP = {
         'tmp': { # temperatures are only considered at surface-level for our purposes.
@@ -48,17 +49,18 @@ class WeatherData:
         1: (['2m_temperature', 'total_precipitation'], ['t2m', 'tp'], ['tmp', 'percip']), # i'm in chronological order!
     }
     DATE_MAP = {
-        1: (datetime(1979, 1, 1, tzinfo=timezone.utc), # like GSOD, data continues to present, but we have decided to train model on data until 2015-01-01 00:00.
-            datetime(2015, 1, 1, 23, tzinfo=timezone.utc)), # in effect this will be downloading for all possible hours of every day, and later averaging all of them.
+        1: (datetime(1940, 1, 1, tzinfo=timezone.utc), 
+            datetime(2023, 6, 30, tzinfo=timezone.utc)), # data after 2015 will be used for confirming the quality of the trained model
         2: (datetime(1979, 1, 1, tzinfo=timezone.utc), datetime(2100, 1, 1, 23, tzinfo=timezone.utc)),
         3: (datetime(1979, 1, 1, tzinfo=timezone.utc), datetime(2023, 1, 1, 23, tzinfo=timezone.utc)) # GSOD records actually begin in 1929.
-    }
+    } # like GSOD, data continues to present, but we have decided to train model on data until 2015-01-01 00:00.
+    # in effect this will be downloading for all possible hours of every day, and later averaging all of them.
 
-    def __init__(self, source: Union[str, list], gcm_type=None, data_types='default', start_date:datetime=None, end_date:datetime=None, force=False, verbose=False):
+    def __init__(self, source: Union[str, int], gcm_type=None, data_types='default', start_date:datetime=None, end_date:datetime=None, force=False, verbose=False):
         '''
         Source implies date ranges (see DATE_MAP), overriding dates is possible, but support has been deprecated since 2023-07-01.
 
-        data_types must be either str of expected types (see TYPE_MAP) or list thereof. 
+        data_types must be either str of expected types (see TYPE_MAP) or integer position of that type. 
         alternatively 'default' assumes the values based on what is needed for dminer research.
 
         if source is GCM (2), gcm_type must be specified: either 'SSP245' (1) or 'SSP585' (2). 
@@ -111,7 +113,7 @@ class WeatherData:
 
         self._timestr = f"from {self.start_date.strftime('%Y-%m-%d')} - {self.end_date.strftime('%Y-%m-%d')}" if self.end_date else f'at {self.start_date}'
         self._typestr = ', '.join(self.data_types)
-        self._sourcestr = f'GCM ({self.GCMS[self.gcm_type]})' if self.source == 2 else self.SOURCES[self.source]
+        self._sourcestr = f'GCM ({self.GCMS[self.gcm_type]})' if self.source == 2 else list(self.SOURCES)[self.source]
         self._str = f'WeatherData source {self._sourcestr} ({self.source}), type(s) {self._typestr}, {self._timestr}'
         self._downloadat = f'./downloads/{self.source}/{self._typestr}/{self._timestr}/'
         self._preprocessat = f'./preprocessed/{self.source}/{self._typestr}/{self._timestr}/'

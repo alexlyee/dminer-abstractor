@@ -4,6 +4,7 @@ from datetime import datetime
 import xarray as xr
 import numpy as np
 from typing import Union
+import asyncio
 
 def preprocess_era5_data(variables: Union[str, list], transform=None, interpolate=1.25, get_from='./', save_to='./', verbose:bool=False) -> bool:
     '''

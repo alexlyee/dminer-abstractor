@@ -4,6 +4,7 @@ from ingest_struct import WeatherData
 import string
 import random
 from typing import Union
+import asyncio
 
 class WorkingData:
     '''

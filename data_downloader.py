@@ -3,6 +3,7 @@
 import cdsapi
 from datetime import datetime
 from typing import Union
+import asyncio
 
 def download_era5_data(variables: Union[str, list], start_date:datetime, end_date:datetime, save_to='./') -> bool:
     '''
@@ -46,8 +47,42 @@ def download_era5_data(variables: Union[str, list], start_date:datetime, end_dat
     return True
 
 ################### GCM
+import cdsapi
 
-def download_gcm_data(variable, start_date:datetime, end_date:datetime, save_to='./') -> bool:
+def download_gcm_data(variables: Union[str, list], gcm_type:str, start_date:datetime, end_date:datetime, save_to='./') -> bool:
+    """Download GCM data from CDS. Will get all 4 values per day.
+
+    Args:
+        variables (list): Variables to download
+        start_date (datetime): Start date
+        end_date (datetime): End date  
+        save_to (str): Path to save the data
+        gcm (str): GCM name, either 'SSP245' or 'SSP585'
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+
+    c = cdsapi.Client()
+
+    request_params = {
+        'model': gcm_type,
+        'variable': variables,
+        'year': [start_date.year, end_date.year],
+        'month': [start_date.month, end_date.month],
+        'day': [start_date.day, end_date.day],
+        'time': [
+            '00:00', '06:00', '12:00', 
+            '18:00' # GCM data has 6 hourly resolution
+        ],
+        'format': 'netcdf',
+    }
+
+    c.retrieve(
+        'cmip6',
+        request_params,
+        f'{save_to}data.nc')
+        
     return True
 
 ################### GSOD

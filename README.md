@@ -49,5 +49,7 @@ conda env create -f environment.yml
 conda init
     # may be needed, afterwards restart terminal
 conda activate dminer
+pip install cdsapi
+    # cdsapi only available on pip
     # restart vscode and select dminer interpreter
 ```
