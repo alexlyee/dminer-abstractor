@@ -35,18 +35,20 @@ class WeatherData:
         'SSP245': 1,
         'SSP585': 2
     })
-    TYPE_MAP = {
+    TYPE_MAP = { # maps our internal shorthand to the download servers expected name and the downloaded file's(s') column name(s)
         'tmp': { # temperatures are only considered at surface-level for our purposes.
             1: ('2m_temperature', 't2m'),
-            2: '?',
+            2: ('2m_temperature', 't2m'),
             3: '?'
         },
         'percip': {
-            1: ('total_precipitation', 'tp')
+            1: ('total_precipitation', 'tp'),
+            2: ('total_precipitation', 'tp')
         }
     }
     DEFAULT_TYPE_MAP = {
         1: (['2m_temperature', 'total_precipitation'], ['t2m', 'tp'], ['tmp', 'percip']), # i'm in chronological order!
+        2: (['2m_temperature', 'total_precipitation'], ['t2m', 'tp'], ['tmp', 'percip'])
     }
     DATE_MAP = {
         1: (datetime(1940, 1, 1, tzinfo=timezone.utc), 
@@ -60,8 +62,9 @@ class WeatherData:
         '''
         Source implies date ranges (see DATE_MAP), overriding dates is possible, but support has been deprecated since 2023-07-01.
 
-        data_types must be either str of expected types (see TYPE_MAP) or integer position of that type. 
+        data_types must be either str of expected types (see TYPE_MAP) or list thereof. 
         alternatively 'default' assumes the values based on what is needed for dminer research.
+        similarly, datetimes of None will be replaced with defaults (see DATE_MAP).
 
         if source is GCM (2), gcm_type must be specified: either 'SSP245' (1) or 'SSP585' (2). 
         
