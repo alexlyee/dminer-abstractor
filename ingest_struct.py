@@ -5,6 +5,7 @@ import os
 from datetime import datetime, timezone
 from collections import OrderedDict as odict
 from typing import Union
+from bidict import bidict
 import asyncio
 
 def dupless(lst:list) -> bool:
@@ -26,12 +27,12 @@ class WeatherData:
 
     Currently only handling data_type='tmp'
     '''
-    SOURCES = odict({
+    SOURCES = bidict({
         'ERA5': 1,
         'IPCC Global Climate Model (GCM) Output': 2,
         'Global Surface Summary of the Day - GSOD': 3
     })
-    GCMS = odict({
+    GCMS = bidict({
         'SSP245': 1,
         'SSP585': 2
     })
@@ -70,16 +71,12 @@ class WeatherData:
         
         by default force will only apply to preprocessing(). pass force=None when calling download for the same effect there.
         '''
-        if isinstance(source, int): 
-            assert 1 <= source <= 3, 'Invalid source number'
-            self.source = source
-        else:
-            assert source in self.SOURCES, 'Invalid source name'
-            self.source = self.SOURCES[source] # self.source will be a number
+        assert gcm_type in self.SOURCES or gcm_type in self.SOURCES.inverse, f'Invalid source: {source}'
+        if isinstance(source, int): self.source = source
+        else: self.source = self.SOURCES[source] # self.source will be a number
         if self.source == 2:
-            if gcm_type not in self.GCMS:
-                if gcm_type != 1 and gcm_type != 2: assert False, 'GCM type expected, got invalid input'
-                else: self.gcm_type = gcm_type
+            assert gcm_type in self.GCMS or gcm_type in self.GCMS.inverse, f'Invalid GCM type: {gcm_type}'
+            if isinstance(gcm_type, int): self.gcm_type = gcm_type
             else: self.gcm_type = self.GCMS[gcm_type]
             
         # date mapping to presumed values for our experiments if not overridden in parameters
@@ -116,7 +113,7 @@ class WeatherData:
 
         self._timestr = f"from {self.start_date.strftime('%Y-%m-%d')} - {self.end_date.strftime('%Y-%m-%d')}" if self.end_date else f'at {self.start_date}'
         self._typestr = ', '.join(self.data_types)
-        self._sourcestr = f'GCM ({self.GCMS[self.gcm_type]})' if self.source == 2 else list(self.SOURCES)[self.source]
+        self._sourcestr = f'GCM ({list(self.GCMS)[self.gcm_type-1]})' if self.source == 2 else list(self.SOURCES)[self.source-1]
         self._str = f'WeatherData source {self._sourcestr} ({self.source}), type(s) {self._typestr}, {self._timestr}'
         self._downloadat = f'./downloads/{self.source}/{self._typestr}/{self._timestr}/'
         self._preprocessat = f'./preprocessed/{self.source}/{self._typestr}/{self._timestr}/'
@@ -158,7 +155,7 @@ class WeatherData:
             self.downloaded = download_era5_data(self._downloadingtypenames, 
                 self.start_date, self.end_date, self._downloadat)
         elif self.source == 2: 
-            self.downloaded = download_gcm_data(self._downloadingtypenames, 
+            self.downloaded = download_gcm_data(self._downloadingtypenames, self.gcm_type,
                 self.start_date, self.end_date, self._downloadat)
         elif self.source == 3: 
             self.downloaded = download_gsod_data(self._downloadingtypenames, 

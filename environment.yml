@@ -10,3 +10,7 @@ dependencies:
   - numpy
   - cartopy
   - requestsy
+  - bidict # pip
+  - pyperclip # pip
+  - wget # pip
+

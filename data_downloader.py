@@ -47,42 +47,37 @@ def download_era5_data(variables: Union[str, list], start_date:datetime, end_dat
     return True
 
 ################### GCM
-import cdsapi
 
-def download_gcm_data(variables: Union[str, list], gcm_type:str, start_date:datetime, end_date:datetime, save_to='./') -> bool:
+import pandas as pd
+import wget
+
+def download_gcm_data(variables: Union[str, list], gcm_type:int, start_date:datetime, end_date:datetime, save_to='./') -> bool:
     """Download GCM data from CDS. Will get all 4 values per day.
 
     Args:
         variables (list): Variables to download
+        gcm_type (str): GCM name, either 1 (SSP245 -> MIROC6) or 2 (SSP585 -> UKESM1-0-LL)        
+            SSP245 - a scenario with low challenges for mitigation and adaptation
+            SSP585 - a scenario with high challenges for mitigation and adaptation
         start_date (datetime): Start date
         end_date (datetime): End date  
         save_to (str): Path to save the data
-        gcm (str): GCM name, either 'SSP245' or 'SSP585'
-
-    Returns:
-        bool: True if successful, False otherwise
     """
+    # download method informed by professor's 
+    # !wget -P /content/drive/MyDrive/P_Misc/Climate-Forecasting/GCM_bc \
+        # \ https://download.scidb.cn/download?fileId=61b95de78bba886bd1c5216a&dataSetType=personal&fileName=atm_hist_1993_04.nc4 
+        # \ https://download.scidb.cn/download?fileId=61babc7dac0a5211856bc715&dataSetType=personal&fileName=atm_ssp245_2094_08.nc4
 
-    c = cdsapi.Client()
+    if gcm_type is 1: model, model_full = 'MIROC6', 'MIROC6_ssp245'
+    elif gcm_type is 2: model, model_full = 'UKESM1-0-LL', 'UKESM1-0-LL_ssp585'
+    else: assert False, 'incorrect GCM model input'
 
-    request_params = {
-        'model': gcm_type,
-        'variable': variables,
-        'year': [start_date.year, end_date.year],
-        'month': [start_date.month, end_date.month],
-        'day': [start_date.day, end_date.day],
-        'time': [
-            '00:00', '06:00', '12:00', 
-            '18:00' # GCM data has 6 hourly resolution
-        ],
-        'format': 'netcdf',
-    }
+    date_range = pd.date_range(start_date, end_date, freq='D')
+    for date in date_range: filename = f'{model_full}_{date.year}{date.month:02d}.nc'
+    
+    url = f'https://esgf-node.llnl.gov/{model}/day/atmos/{date.year}/{filename}'
+    wget.download(url, f'{save_to}data.nc')
 
-    c.retrieve(
-        'cmip6',
-        request_params,
-        f'{save_to}data.nc')
-        
     return True
 
 ################### GSOD
