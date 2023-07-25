@@ -50,6 +50,8 @@ def download_era5_data(variables: Union[str, list], start_date:datetime, end_dat
 
 import pandas as pd
 import wget
+import requests
+import tqdm
 
 def download_gcm_data(variables: Union[str, list], gcm_type:int, start_date:datetime, end_date:datetime, save_to='./') -> bool:
     """Download GCM data from CDS. Will get all 4 values per day.
@@ -68,17 +70,30 @@ def download_gcm_data(variables: Union[str, list], gcm_type:int, start_date:date
         # \ https://download.scidb.cn/download?fileId=61b95de78bba886bd1c5216a&dataSetType=personal&fileName=atm_hist_1993_04.nc4 
         # \ https://download.scidb.cn/download?fileId=61babc7dac0a5211856bc715&dataSetType=personal&fileName=atm_ssp245_2094_08.nc4
 
-    if gcm_type is 1: model, model_full = 'MIROC6', 'MIROC6_ssp245'
-    elif gcm_type is 2: model, model_full = 'UKESM1-0-LL', 'UKESM1-0-LL_ssp585'
-    else: assert False, 'incorrect GCM model input'
-
-    date_range = pd.date_range(start_date, end_date, freq='D')
-    for date in date_range: filename = f'{model_full}_{date.year}{date.month:02d}.nc'
+    # Determine fileIds based on gcm_type and date range
+  
+    fileIds = ['61b95de78bba886bd1c5216a', '61babc7dac0a5211856bc715'] 
     
-    url = f'https://esgf-node.llnl.gov/{model}/day/atmos/{date.year}/{filename}'
-    wget.download(url, f'{save_to}data.nc')
+    for fileId in fileIds:
+        url = f'https://download.scidb.cn/download?fileId={fileId}&dataSetType=personal'
+        # Stream the response to a file on disk
+        response = requests.get(url, stream=True)
+        total_size = int(response.headers.get('content-length', 0))
+        
+        filepath = f'{save_to}{fileId}.nc'
+        
+        progress_bar = tqdm.tqdm(total=total_size, unit='iB', unit_scale=True)
+        with open(filepath, 'wb') as f:
+            for data in response.iter_content(chunk_size=1024):
+                progress_bar.update(len(data))
+                f.write(data)
+            
+        progress_bar.close()
 
     return True
+    
+
+    
 
 ################### GSOD
 
