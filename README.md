@@ -16,6 +16,8 @@ a part of the works of [the DMiner lab at MSU](https://www.egr.msu.edu/~ptan/dmi
 contains code to automate the downloading, preprocessing, and plotting functions of this research endeavor.
 it is designed in a semi-modular fashion to allow for future extensibility.
 
+was unfifnished as of August 2023 due to miscommunications (see summary for more)
+
 ### ingest_struct
 
 is a class designed to automate the downloading and preprocessing of our data from the three sources.

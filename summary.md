@@ -1,4 +1,9 @@
 
+> This was a place where I (along with the readme) tried to figure out what we really were trying to achieve. It took until the 6th week for the information needed to understand that we in fact only would ever care about one date range to be revealed, which rendered most of my programming up until that point useless to the dminer lab. :(
+    > There was a distinct impression before then that abstracting the downloading and preprocessing process was maximally needed.
+    > In hindsight, although I asked consistently for more information at meetings, and occasionally via. email, it would have been best if I more strongly said "no, I can't work on this without knowing the full scope of the work." I understand now how easy it is to forget how little another knows or can readily infer about your project, and the importance of insisting on being provided complete contextual information for freelance programming work.
+        > I've done a lot of odd programming jobs before, so I know this, but I think it was my first time in a situation where I really had to say "no, this isn't enough information at all." again, despite being pressed for time.
+
 Newer summaries are pasted above. Older ones are kept in case information is lost betwixt summaries. Three dividers will indicate that the below summaries were incorporated in a deliberate way into the above one.
 
 ---
